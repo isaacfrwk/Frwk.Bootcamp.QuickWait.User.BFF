@@ -13,5 +13,6 @@ namespace FrwkQuickWait.Domain.Constants
         public const string DELETE = "DELETE";
         public const string GET = "GET";
         public const string GETBYID = "GETBYID";
+        public const string FINDALL = "FINDALL";
     }
 }

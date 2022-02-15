@@ -28,7 +28,7 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
         [ProducesResponseType(typeof(User), StatusCodes.Status200OK)]
         public async Task<IActionResult> Get()
         {
-            var message = new MessageInput(null, Methods.GETBYID, string.Empty);
+            var message = new MessageInput(null, Methods.FINDALL, string.Empty);
 
             await producerService.Call(message, Topics.USER);
 
@@ -37,9 +37,11 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
             var input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
 
             if (input.Status == 404)
-                return NotFound(new { token = input.Content });
+                return NotFound(new { user = input.Content });
 
-            return Ok(new { user = input.Content });
+            var users = JsonConvert.DeserializeObject<IEnumerable<User>>(input.Content);
+
+            return Ok(new { users });
         }
 
         [HttpGet("{id}")]
@@ -60,11 +62,14 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
             if (input.Status == 404)
                 return NotFound(new { token = input.Content });
 
-            return Ok(new { user = input.Content });
+            var user = JsonConvert.DeserializeObject<User>(input.Content);
+
+            return Ok(new { user });
 
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(User), StatusCodes.Status201Created)]
@@ -73,6 +78,13 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
             var message = new MessageInput(null, Methods.POST, JsonConvert.SerializeObject(user));
 
             await producerService.Call(message, Topics.USER);
+
+            var response = await consumerService.ProcessQueue(Topics.USERRESPONSE);
+
+            var input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
+
+            if (input.Status == 400)
+                return BadRequest(new { token = input.Content });
 
             return Created($"{ Request.Path }", null);
         }

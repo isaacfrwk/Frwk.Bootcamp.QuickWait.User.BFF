@@ -1,6 +1,7 @@
 ﻿using FrwkQuickWait.Domain.Constants;
 using FrwkQuickWait.Domain.Entity;
 using FrwkQuickWait.Domain.Intefaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -21,6 +22,10 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> Post([FromBody] User user)
         {
             var message = new MessageInput(null, Methods.POST, JsonConvert.SerializeObject(user));
@@ -31,10 +36,12 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
 
             var input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
 
-            if (input.Status == 404)
-                return NotFound(new { token = input.Content });
+            var token = input.Content.Replace("\"", "");
 
-            return Ok(new { token = input.Content });
+            if (input.Status == 404)
+                return NotFound(new { token });
+
+            return Ok(new { token });
         }
     }
 }

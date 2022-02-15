@@ -18,12 +18,13 @@ namespace FrwkQuickWait.Service.Services
         {
             cloudConfig = new ClientConfig
             {
-                BootstrapServers = CloudKarafka.Brokers,
-                SaslUsername = CloudKarafka.Username,
-                SaslPassword = CloudKarafka.Password,
-                SaslMechanism = SaslMechanism.ScramSha256,
-                SecurityProtocol = SecurityProtocol.SaslSsl,
-                EnableSslCertificateVerification = false
+                BootstrapServers = Settings.kafkahost
+                //BootstrapServers = CloudKarafka.Brokers,
+                //SaslUsername = CloudKarafka.Username,
+                //SaslPassword = CloudKarafka.Password,
+                //SaslMechanism = SaslMechanism.ScramSha256,
+                //SecurityProtocol = SecurityProtocol.SaslSsl,
+                //EnableSslCertificateVerification = false
             };
         }
 
@@ -35,7 +36,7 @@ namespace FrwkQuickWait.Service.Services
 
             var key = new Guid().ToString();
 
-            await producer.ProduceAsync($"{CloudKarafka.Prefix + topicName}", new Message<string, string> { Key = key, Value = stringfiedMessage });
+            await producer.ProduceAsync(topicName, new Message<string, string> { Key = key, Value = stringfiedMessage });
 
             producer.Flush(TimeSpan.FromSeconds(2));
         }

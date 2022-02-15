@@ -7,6 +7,7 @@ namespace FrwkQuickWait.Domain.Entity
         [ValidateNever]
         public string? Username { get; set; }
         public string? Password { get; set; }
+        public DateTime Birth { get; set; }
         public string? Phone { get; set; }
         [ValidateNever]
         public string? Role { get; set; }

@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\2-Domain\FrwkQuickWait.Domain\FrwkQuickWait.Domain.csproj" />
+    <ProjectReference Include="..\FrwkQuickWait.Domain\FrwkQuickWait.Domain.csproj" />
   </ItemGroup>
 
 </Project>

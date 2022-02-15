@@ -11,11 +11,11 @@ namespace FrwkQuickWait.Service.Services
         {
             this.config = new ConsumerConfig
             {
-                BootstrapServers = CloudKarafka.Brokers,
-                SaslUsername = CloudKarafka.Username,
-                SaslPassword = CloudKarafka.Password,
-                SaslMechanism = SaslMechanism.ScramSha256,
-                SecurityProtocol = SecurityProtocol.SaslSsl,
+                BootstrapServers = Settings.kafkahost,
+                //SaslUsername = CloudKarafka.Username,
+                //SaslPassword = CloudKarafka.Password,
+                //SaslMechanism = SaslMechanism.ScramSha256,
+                //SecurityProtocol = SecurityProtocol.SaslSsl,
                 AutoOffsetReset = AutoOffsetReset.Earliest
             }; 
         }
@@ -26,13 +26,18 @@ namespace FrwkQuickWait.Service.Services
             var consumeResult = new ConsumeResult<Ignore, string>();
             config.GroupId = $"{topicName}-group-2";
             using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
-            consumer.Subscribe($"{CloudKarafka.Prefix + topicName}");
+            //var topic = String.Concat(CloudKarafka.Prefix, topicName);
+            consumer.Subscribe(topicName);
             var cancellationTokenSource = new CancellationTokenSource();
             
             try
             {
-                consumeResult = consumer.Consume(cancellationTokenSource.Token);
-                consumer.Close();
+                while (!cancellationTokenSource.IsCancellationRequested)
+                {
+                    consumeResult = consumer.Consume(cancellationTokenSource.Token);
+                    consumer.Close();
+                }
+                    
             }
             catch (OperationCanceledException ex)
             {

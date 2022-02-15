@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>..\..\..</DockerfileContext>
+    <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\2-Domain\FrwkQuickWait.Domain\FrwkQuickWait.Domain.csproj" />
-    <ProjectReference Include="..\..\4-Infrastructure\FrwkQuickWait.Infrastructure\FrwkQuickWait.Infrastructure.csproj" />
+    <ProjectReference Include="..\FrwkQuickWait.Domain\FrwkQuickWait.Domain.csproj" />
+    <ProjectReference Include="..\FrwkQuickWait.Infrastructure\FrwkQuickWait.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
