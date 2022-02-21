@@ -2,24 +2,22 @@
 using FrwkQuickWait.Domain.Constants;
 using FrwkQuickWait.Domain.Entity;
 using FrwkQuickWait.Domain.Intefaces;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FrwkQuickWait.Service.Services
 {
     public class ProducerService : IProducerService
     {
         private readonly ClientConfig cloudConfig;
-        public ProducerService()
+        private readonly IConfiguration _configuration;
+        public ProducerService(IConfiguration configuration)
         {
+            _configuration = configuration;
+
             cloudConfig = new ClientConfig
             {
-                BootstrapServers = Settings.kafkahost
-                //BootstrapServers = CloudKarafka.Brokers,
+                BootstrapServers = _configuration.GetSection("Kafka")["Host"]
                 //SaslUsername = CloudKarafka.Username,
                 //SaslPassword = CloudKarafka.Password,
                 //SaslMechanism = SaslMechanism.ScramSha256,
@@ -39,6 +37,7 @@ namespace FrwkQuickWait.Service.Services
             await producer.ProduceAsync(topicName, new Message<string, string> { Key = key, Value = stringfiedMessage });
 
             producer.Flush(TimeSpan.FromSeconds(2));
+
         }
     }
 }

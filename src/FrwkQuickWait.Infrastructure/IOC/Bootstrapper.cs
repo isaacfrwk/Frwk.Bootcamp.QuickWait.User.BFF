@@ -7,12 +7,9 @@ namespace FrwkQuickWait.Infrastructure.IOC
     public static class Bootstrapper
     {
         public static IServiceCollection AddServices(this IServiceCollection services)
-        {
-            services
+          => services
                 .AddScoped<IConsumerService, ConsumerService>()
                 .AddScoped<IProducerService, ProducerService>();
 
-            return services;
-        }
     }
 }

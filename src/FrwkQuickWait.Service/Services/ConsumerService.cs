@@ -1,26 +1,31 @@
 ﻿using Confluent.Kafka;
 using FrwkQuickWait.Domain.Constants;
 using FrwkQuickWait.Domain.Intefaces;
+using Microsoft.Extensions.Configuration;
 
 namespace FrwkQuickWait.Service.Services
 {
     public class ConsumerService : IConsumerService
     {
         private readonly ConsumerConfig config;
-        public ConsumerService()
+        private readonly IConfiguration _configuration;
+        public ConsumerService(IConfiguration configuration)
         {
+            _configuration = configuration;
+
             this.config = new ConsumerConfig
             {
-                BootstrapServers = Settings.kafkahost,
+                BootstrapServers = _configuration.GetSection("Kafka")["Host"],
                 //SaslUsername = CloudKarafka.Username,
                 //SaslPassword = CloudKarafka.Password,
                 //SaslMechanism = SaslMechanism.ScramSha256,
                 //SecurityProtocol = SecurityProtocol.SaslSsl,
+                EnableAutoOffsetStore = false,
                 AutoOffsetReset = AutoOffsetReset.Earliest
             }; 
         }
 
-        public async Task<ConsumeResult<Ignore, string>> ProcessQueue(string topicName)
+        public async Task<ConsumeResult<Ignore, string>> ProcessQueue(string topicName, CancellationToken cancellationToken)
         {
 
             var consumeResult = new ConsumeResult<Ignore, string>();
@@ -28,20 +33,23 @@ namespace FrwkQuickWait.Service.Services
             using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
             //var topic = String.Concat(CloudKarafka.Prefix, topicName);
             consumer.Subscribe(topicName);
-            var cancellationTokenSource = new CancellationTokenSource();
             
             try
             {
-                while (!cancellationTokenSource.IsCancellationRequested)
-                {
-                    consumeResult = consumer.Consume(cancellationTokenSource.Token);
-                    consumer.Close();
-                }
-                    
+                //while (!cancellationToken.IsCancellationRequested)
+                //{
+
+                    consumeResult = consumer.Consume(cancellationToken);
+                    consumer.StoreOffset(consumeResult);
+
+                //}
+
+                consumer.Close();
+
             }
             catch (OperationCanceledException ex)
             {
-                
+                consumer.Close();
             }
 
             return await Task.FromResult(consumeResult);

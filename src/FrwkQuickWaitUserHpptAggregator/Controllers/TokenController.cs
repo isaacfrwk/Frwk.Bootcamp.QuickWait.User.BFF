@@ -2,10 +2,8 @@
 using FrwkQuickWait.Domain.Entity;
 using FrwkQuickWait.Domain.Intefaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using System.ComponentModel.DataAnnotations;
 
 namespace FrwkQuickWaitUserHpptAggregator.Controllers
 {
@@ -15,33 +13,59 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
     {
         private readonly IProducerService producerService;
         private readonly IConsumerService consumerService;
-        public TokenController(IProducerService producerService, IConsumerService consumerService)
+        private readonly IConfiguration configuration;
+        public TokenController(IProducerService producerService,
+                               IConsumerService consumerService,
+                               IConfiguration configuration)
         {
             this.producerService = producerService;
             this.consumerService = consumerService;
+            this.configuration = configuration;
         }
 
         [HttpPost]
         [AllowAnonymous]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> Post([FromBody] User user)
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        public async Task<IActionResult> Post([FromBody] UserAuth model, CancellationToken cancellationToken)
         {
-            var message = new MessageInput(null, Methods.POST, JsonConvert.SerializeObject(user));
 
-            await producerService.Call(message, Topics.AUTH);
+            using (SentrySdk.Init(o =>
+            {
+                o.Dsn = configuration.GetSection("Sentry")["Dsn"];
+                o.Debug = true;
+                o.TracesSampleRate = 1.0;
+            }))
+            {
+                MessageInput? input = null;
+                string? token = null;
 
-            var response = await consumerService.ProcessQueue(Topics.AUTHRESPONSE);
+                try
+                {
+                    var message = new MessageInput(null, Methods.POST, JsonConvert.SerializeObject(model));
 
-            var input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
+                    await producerService.Call(message, Topics.AUTH);
 
-            var token = input.Content.Replace("\"", "");
+                    var response = await consumerService.ProcessQueue(Topics.AUTHRESPONSE, cancellationToken);
 
-            if (input.Status == 404)
-                return NotFound(new { token });
+                    input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
 
-            return Ok(new { token });
+                    token = input.Content.Replace("\"", "");
+
+                }
+                catch (Exception ex)
+                {
+                    SentrySdk.CaptureException(ex);
+                }
+
+                if (input.Status == 404)
+                    return NotFound(new { token });
+
+                return Ok(new { token });
+
+            }
+             
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace FrwkQuickWait.Domain.Entity
 {
-    public class User
+    public class UserProfile
     {
         [ValidateNever]
         public string? Username { get; set; }
