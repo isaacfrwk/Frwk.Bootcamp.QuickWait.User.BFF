@@ -10,14 +10,13 @@ namespace FrwkQuickWait.Service.Services
     public class ProducerService : IProducerService
     {
         private readonly ClientConfig cloudConfig;
-        private readonly IConfiguration _configuration;
-        public ProducerService(IConfiguration configuration)
+        
+        public ProducerService()
         {
-            _configuration = configuration;
 
             cloudConfig = new ClientConfig
             {
-                BootstrapServers = _configuration.GetSection("Kafka")["Host"]
+                BootstrapServers = Settings.kafkahost
                 //SaslUsername = CloudKarafka.Username,
                 //SaslPassword = CloudKarafka.Password,
                 //SaslMechanism = SaslMechanism.ScramSha256,

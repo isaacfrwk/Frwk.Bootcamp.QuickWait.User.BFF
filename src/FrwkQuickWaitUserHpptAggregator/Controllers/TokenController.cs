@@ -13,14 +13,14 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
     {
         private readonly IProducerService producerService;
         private readonly IConsumerService consumerService;
-        private readonly IConfiguration configuration;
+        //private readonly IConfiguration configuration;
+
         public TokenController(IProducerService producerService,
-                               IConsumerService consumerService,
-                               IConfiguration configuration)
+                               IConsumerService consumerService)
         {
             this.producerService = producerService;
             this.consumerService = consumerService;
-            this.configuration = configuration;
+            //this.configuration = configuration;
         }
 
         [HttpPost]
@@ -28,18 +28,18 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-        public async Task<IActionResult> Post([FromBody] UserAuth model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Post([FromBody] UserAuth model)
         {
 
-            using (SentrySdk.Init(o =>
-            {
-                o.Dsn = configuration.GetSection("Sentry")["Dsn"];
-                o.Debug = true;
-                o.TracesSampleRate = 1.0;
-            }))
-            {
+            //using (SentrySdk.Init(o =>
+            //{
+            //    o.Dsn = configuration.GetSection("Sentry")["Dsn"];
+            //    o.Debug = true;
+            //    o.TracesSampleRate = 1.0;
+            //}))
+            //{
                 MessageInput? input = null;
-                string? token = null;
+                string? access_token = null;
 
                 try
                 {
@@ -47,11 +47,11 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
 
                     await producerService.Call(message, Topics.AUTH);
 
-                    var response = await consumerService.ProcessQueue(Topics.AUTHRESPONSE, cancellationToken);
+                    var response = await consumerService.ProcessQueue(Topics.AUTHRESPONSE);
 
                     input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
 
-                    token = input.Content.Replace("\"", "");
+                    access_token = input.Content.Replace("\"", "");
 
                 }
                 catch (Exception ex)
@@ -60,12 +60,12 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
                 }
 
                 if (input.Status == 404)
-                    return NotFound(new { token });
+                    return NotFound(new { access_token });
 
-                return Ok(new { token });
+                return Ok(new { access_token });
 
-            }
-             
+            //}
+
         }
     }
 }

@@ -14,12 +14,10 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
     {
         private readonly IProducerService producerService;
         private readonly IConsumerService consumerService;
-        private readonly IConfiguration configuration;
-        public UserController(IProducerService producerService, IConsumerService consumerService, IConfiguration configuration)
+        public UserController(IProducerService producerService, IConsumerService consumerService)
         {
             this.producerService = producerService;
             this.consumerService = consumerService;
-            this.configuration = configuration;
         }
 
         [HttpGet]
@@ -27,16 +25,24 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(UserProfile), StatusCodes.Status200OK)]
-        public async Task<IActionResult> Get(CancellationToken cancellationToken)
+        public async Task<IActionResult> Get()
         {
-            var message = new MessageInput(null, Methods.FINDALL, string.Empty);
+            MessageInput? input = null;
 
-            await producerService.Call(message, Topics.USER);
+            try
+            {
+                await producerService.Call(new MessageInput(null, Methods.FINDALL, string.Empty), Topics.USER);
 
-            var response = await consumerService.ProcessQueue(Topics.USERRESPONSE, cancellationToken);
+                var response = await consumerService.ProcessQueue(Topics.USERRESPONSE);
 
-            var input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
+                input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
 
+            }
+            catch (Exception ex)
+            {
+                SentrySdk.CaptureException(ex);
+            }
+            
             if (input.Status == 404)
                 return NotFound(new { user = input.Content });
 
@@ -50,15 +56,26 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(UserProfile), StatusCodes.Status200OK)]
-        public async Task<IActionResult> Get([FromRoute][Required] Guid id, CancellationToken cancellationToken)
+        public async Task<IActionResult> Get([FromRoute][Required] Guid id)
         {
-            var message = new MessageInput(null, Methods.GETBYID, JsonConvert.SerializeObject(id));
+            MessageInput? input;
 
-            await producerService.Call(message, Topics.USER);
+            try
+            {
 
-            var response = await consumerService.ProcessQueue(Topics.USERRESPONSE, cancellationToken);
+                await producerService.Call(new MessageInput(null, Methods.GETBYID, JsonConvert.SerializeObject(id)), Topics.USER);
 
-            var input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
+                var response = await consumerService.ProcessQueue(Topics.USERRESPONSE);
+
+                input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
+
+            }
+            catch (Exception ex)
+            {
+                SentrySdk.CaptureException(ex);
+                return BadRequest(ex.Message);
+            }
+            
 
             if (input.Status == 404)
                 return NotFound(new { user = input.Content });
@@ -74,43 +91,32 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(UserProfile), StatusCodes.Status201Created)]
-        public async Task<IActionResult> Post([FromBody][Required] UserProfile model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Post([FromBody][Required] UserProfile model)
         {
-            using (SentrySdk.Init(o =>
+            UserProfile? user;
+            MessageInput? input;
+
+            try
             {
-                o.Dsn = configuration.GetSection("Sentry")["Dsn"];
-                o.Debug = true;
-                o.TracesSampleRate = 1.0;
-            }))
-            {
-                MessageInput? input = null;
-                UserProfile? user = null;
+                await producerService.Call(new MessageInput(null, Methods.POST, JsonConvert.SerializeObject(model)), Topics.USER);
 
-                try
-                {
+                var response = await consumerService.ProcessQueue(Topics.USERRESPONSE);
 
-                    var message = new MessageInput(null, Methods.POST, JsonConvert.SerializeObject(model));
+                input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
 
-                    await producerService.Call(message, Topics.USER);
-
-                    var response = await consumerService.ProcessQueue(Topics.USERRESPONSE, cancellationToken);
-
-                    input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
-
-                    user = JsonConvert.DeserializeObject<UserProfile>(input.Content.Replace("\"",""));
-
-                }
-                catch (Exception ex)
-                {
-                    SentrySdk.CaptureException(ex);
-                }
-                
-                if (input.Status == 400)
-                    return BadRequest(new { user });
-
-                return Created($"{ Request.Path }", new { user });
+                user = JsonConvert.DeserializeObject<UserProfile>(input.Content.Replace("\"", ""));
 
             }
+            catch (Exception ex)
+            {
+                SentrySdk.CaptureException(ex);
+                return BadRequest(ex.Message);
+            }
+
+            if (input.Status == 400)
+                return BadRequest(new { user });
+
+            return Created($"{ Request.Path }", new { user });
         }
 
         [HttpPut]
@@ -120,9 +126,15 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
         [ProducesResponseType(typeof(User), StatusCodes.Status204NoContent)]
         public async Task<IActionResult> Put([FromBody][Required] UserProfile user)
         {
-            var message = new MessageInput(null, Methods.PUT, JsonConvert.SerializeObject(user));
-
-            await producerService.Call(message, Topics.USER);
+            try
+            {
+                await producerService.Call(new MessageInput(null, Methods.PUT, JsonConvert.SerializeObject(user)), Topics.USER);
+            }
+            catch (Exception ex)
+            {
+                SentrySdk.CaptureException(ex);
+                return BadRequest(ex.Message);
+            }
 
             return NoContent();
         }
@@ -133,9 +145,15 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public void Delete([FromBody][Required] UserProfile user)
         {
-            var message = new MessageInput(null, Methods.DELETE, JsonConvert.SerializeObject(user));
+            try
+            {
+                producerService.Call(new MessageInput(null, Methods.DELETE, JsonConvert.SerializeObject(user)), Topics.USER);
 
-            producerService.Call(message, Topics.USER);
+            }
+            catch (Exception ex)
+            {
+                SentrySdk.CaptureException(ex);
+            }
         }
     }
 }

@@ -1,12 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using System.ComponentModel.DataAnnotations;
 
 namespace FrwkQuickWait.Domain.Entity
 {
     public class UserProfile
     {
-        [ValidateNever]
-        public string? Username { get; set; }
-        public string? Password { get; set; }
+        [Required]
+        public string Username { get; set; }
+        [Required]
+        public string Password { get; set; }
         public DateTime Birth { get; set; }
         public string? Phone { get; set; }
         [ValidateNever]

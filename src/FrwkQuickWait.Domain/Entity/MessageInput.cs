@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FrwkQuickWait.Domain.Entity
+﻿namespace FrwkQuickWait.Domain.Entity
 {
     public class MessageInput
     {
@@ -18,5 +12,6 @@ namespace FrwkQuickWait.Domain.Entity
             Method = method;
             Content = content;
         }
+
     }
 }

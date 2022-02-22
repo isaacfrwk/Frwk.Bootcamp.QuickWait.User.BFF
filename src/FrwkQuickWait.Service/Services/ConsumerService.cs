@@ -8,14 +8,12 @@ namespace FrwkQuickWait.Service.Services
     public class ConsumerService : IConsumerService
     {
         private readonly ConsumerConfig config;
-        private readonly IConfiguration _configuration;
-        public ConsumerService(IConfiguration configuration)
+        
+        public ConsumerService()
         {
-            _configuration = configuration;
-
             this.config = new ConsumerConfig
             {
-                BootstrapServers = _configuration.GetSection("Kafka")["Host"],
+                BootstrapServers = Settings.kafkahost,
                 //SaslUsername = CloudKarafka.Username,
                 //SaslPassword = CloudKarafka.Password,
                 //SaslMechanism = SaslMechanism.ScramSha256,
@@ -25,9 +23,10 @@ namespace FrwkQuickWait.Service.Services
             }; 
         }
 
-        public async Task<ConsumeResult<Ignore, string>> ProcessQueue(string topicName, CancellationToken cancellationToken)
+        public async Task<ConsumeResult<Ignore, string>> ProcessQueue(string topicName)
         {
-
+            bool? cancelled = false;
+            var cancellationToken = new CancellationToken();
             var consumeResult = new ConsumeResult<Ignore, string>();
             config.GroupId = $"{topicName}-group-2";
             using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
@@ -36,16 +35,22 @@ namespace FrwkQuickWait.Service.Services
             
             try
             {
-                //while (!cancellationToken.IsCancellationRequested)
-                //{
+                try
+                {
+                    while ((bool)!cancelled)
+                    {
 
-                    consumeResult = consumer.Consume(cancellationToken);
-                    consumer.StoreOffset(consumeResult);
+                        consumeResult = consumer.Consume(cancellationToken);
+                        consumer.StoreOffset(consumeResult);
+                        cancelled = true;
 
-                //}
+                    }
 
-                consumer.Close();
+                    consumer.Close();
 
+                }
+                catch (KafkaException ex) { }
+                
             }
             catch (OperationCanceledException ex)
             {
