@@ -13,14 +13,12 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
     {
         private readonly IProducerService producerService;
         private readonly IConsumerService consumerService;
-        //private readonly IConfiguration configuration;
 
         public TokenController(IProducerService producerService,
                                IConsumerService consumerService)
         {
             this.producerService = producerService;
             this.consumerService = consumerService;
-            //this.configuration = configuration;
         }
 
         [HttpPost]
@@ -30,41 +28,31 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         public async Task<IActionResult> Post([FromBody] UserAuth model)
         {
+            MessageInput? input = null;
+            string? access_token = null;
 
-            //using (SentrySdk.Init(o =>
-            //{
-            //    o.Dsn = configuration.GetSection("Sentry")["Dsn"];
-            //    o.Debug = true;
-            //    o.TracesSampleRate = 1.0;
-            //}))
-            //{
-                MessageInput? input = null;
-                string? access_token = null;
+            try
+            {
+                var message = new MessageInput(null, Methods.POST, JsonConvert.SerializeObject(model));
 
-                try
-                {
-                    var message = new MessageInput(null, Methods.POST, JsonConvert.SerializeObject(model));
+                await producerService.Call(message, Topics.AUTH);
 
-                    await producerService.Call(message, Topics.AUTH);
+                var response = await consumerService.ProcessQueue(Topics.AUTHRESPONSE);
 
-                    var response = await consumerService.ProcessQueue(Topics.AUTHRESPONSE);
+                input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
 
-                    input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
+                access_token = input.Content.Replace("\"", "");
 
-                    access_token = input.Content.Replace("\"", "");
+            }
+            catch (Exception ex)
+            {
+                SentrySdk.CaptureException(ex);
+            }
 
-                }
-                catch (Exception ex)
-                {
-                    SentrySdk.CaptureException(ex);
-                }
+            if (input.Status == 404)
+                return NotFound(new { access_token });
 
-                if (input.Status == 404)
-                    return NotFound(new { access_token });
-
-                return Ok(new { access_token });
-
-            //}
+            return Ok(new { access_token });
 
         }
     }
