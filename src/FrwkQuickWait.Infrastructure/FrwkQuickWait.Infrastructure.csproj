@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FrwkQuickWait.Domain\FrwkQuickWait.Domain.csproj" />
-    <ProjectReference Include="..\FrwkQuickWait.Service\FrwkQuickWait.Service.csproj" />
+    <ProjectReference Include="..\FrwkQuickWait.Service\FrwkQuickWait.Application.csproj" />
   </ItemGroup>
 
 </Project>
