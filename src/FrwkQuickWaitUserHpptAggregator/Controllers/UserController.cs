@@ -104,8 +104,6 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
 
                 input = JsonConvert.DeserializeObject<MessageInput>(response.Message.Value);
 
-                user = JsonConvert.DeserializeObject<UserProfile>(input.Content.Replace("\"", ""));
-
             }
             catch (Exception ex)
             {
@@ -114,7 +112,9 @@ namespace FrwkQuickWaitUserHpptAggregator.Controllers
             }
 
             if (input.Status == 400)
-                return BadRequest(new { user });
+                return BadRequest(new { user = input.Content.Replace("\"", "") });
+
+            user = JsonConvert.DeserializeObject<UserProfile>(input.Content);
 
             return Created($"{ Request.Path }", new { user });
         }

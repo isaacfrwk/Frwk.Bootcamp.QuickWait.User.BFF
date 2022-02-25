@@ -10,18 +10,15 @@ namespace FrwkQuickWait.Service.Services
     public class ProducerService : IProducerService
     {
         private readonly ClientConfig cloudConfig;
+        private readonly IConfiguration _configuration;
         
-        public ProducerService()
+        public ProducerService(IConfiguration configuration)
         {
+            _configuration = configuration;
 
             cloudConfig = new ClientConfig
             {
-                BootstrapServers = Settings.kafkahost
-                //SaslUsername = CloudKarafka.Username,
-                //SaslPassword = CloudKarafka.Password,
-                //SaslMechanism = SaslMechanism.ScramSha256,
-                //SecurityProtocol = SecurityProtocol.SaslSsl,
-                //EnableSslCertificateVerification = false
+                BootstrapServers = _configuration.GetSection("Kafka")["host"]
             };
         }
 
@@ -35,7 +32,7 @@ namespace FrwkQuickWait.Service.Services
 
             await producer.ProduceAsync(topicName, new Message<string, string> { Key = key, Value = stringfiedMessage });
 
-            producer.Flush(TimeSpan.FromSeconds(2));
+            producer.Flush(TimeSpan.FromSeconds(10));
 
         }
     }
